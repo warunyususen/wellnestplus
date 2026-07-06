@@ -124,6 +124,13 @@ body {
   padding: 40px 12px; font-size: .9rem;
 }
 
+/* ================= AI summary ================= */
+.ai-panel { display: flex; flex-direction: column; gap: 12px; }
+.ai-panel .btn { align-self: flex-start; }
+.ai-result { font-size: .96rem; line-height: 1.75; color: var(--ink); }
+.ai-result.empty { color: var(--muted); font-size: .86rem; }
+.btn[disabled] { opacity: .6; cursor: default; }
+
 /* ================= Footer ================= */
 .foot {
   margin: 26px 0 12px; padding: 14px 16px; font-size: .8rem; color: var(--muted);
@@ -238,6 +245,14 @@ body {
       </div>
     </div>
 
+    <div class="section-title">
+      <span class="eyebrow">ผู้ช่วย</span><h3>สรุปด้วย AI</h3>
+    </div>
+    <div class="panel ai-panel">
+      <button class="btn" id="aiBtn">✨ ให้ AI เรียบเรียงบทสรุป</button>
+      <div class="ai-result empty" id="aiResult">กดปุ่มด้านบนเพื่อให้ AI สรุปภาพรวมเป็นบทสรุปสำหรับผู้บริหาร (จากข้อมูลเดโม)</div>
+    </div>
+
     <div class="foot" id="footBox"></div>
   </section>
 
@@ -338,6 +353,7 @@ function fetchSummary(uid) {
 
 var CHARTS = {};   // เก็บ instance ไว้ resize
 var echartsReady = false;
+var CURRENT_UID = null;   // เก็บ uid ที่ผ่านสิทธิ์แล้ว ไว้ใช้ปุ่มสรุป AI (R3.3)
 
 function showState(id) {
   ['state-loading', 'state-needuid', 'state-unauth', 'state-error'].forEach(function (s) {
@@ -504,6 +520,7 @@ function start() {
     .then(resolveUid)
     .then(function (uid) {
       if (!uid) { showState('state-needuid'); return null; }
+      CURRENT_UID = uid;   // เก็บไว้ให้ปุ่มสรุป AI (R3.3)
       if (CONFIG.GAS_ENDPOINT.indexOf('XXXX') !== -1) {
         document.getElementById('errMsg').textContent = 'ยังไม่ได้ตั้งค่า GAS_ENDPOINT ในไฟล์ (ดูส่วน CONFIG)';
         showState('state-error');
@@ -527,6 +544,35 @@ function start() {
     });
 }
 
+// ---- R3.3: ปุ่มสรุปด้วย AI ----
+function fetchAiSummary() {
+  if (!CURRENT_UID) return;
+  var btn = document.getElementById('aiBtn');
+  var box = document.getElementById('aiResult');
+  btn.disabled = true; btn.textContent = 'กำลังเรียบเรียง…';
+  box.className = 'ai-result empty'; box.textContent = 'AI กำลังสรุป โปรดรอสักครู่…';
+
+  var url = CONFIG.GAS_ENDPOINT + '?action=ai_summary&uid=' + encodeURIComponent(CURRENT_UID);
+  fetch(url, { method: 'GET', redirect: 'follow' })
+    .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+    .then(function (data) {
+      if (!data || pick(data, 'ok') === false) {
+        throw new Error((data && pick(data, 'message')) || 'ไม่มีสิทธิ์');
+      }
+      var txt = pick(data, 'summary_text', 'summaryText') || '';
+      box.className = 'ai-result';
+      box.innerHTML = sanitizeHTML(txt).replace(/\n/g, '<br>');   // escape ก่อน แล้วค่อยใส่ขึ้นบรรทัด
+    })
+    .catch(function (e) {
+      box.className = 'ai-result empty';
+      box.textContent = 'สรุปด้วย AI ไม่สำเร็จ (' + (e && e.message ? e.message : 'error') + ') — ลองใหม่อีกครั้ง';
+    })
+    .then(function () {
+      btn.disabled = false; btn.textContent = '✨ ให้ AI เรียบเรียงบทสรุป';
+    });
+}
+
+document.getElementById('aiBtn').addEventListener('click', fetchAiSummary);
 document.getElementById('retryBtn').addEventListener('click', start);
 start();
 </script>
