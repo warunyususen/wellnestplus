@@ -286,9 +286,10 @@ body {
 
 <script>
 /* =======================================================================
- * WellNest+ · ฟอร์มบันทึกข้อมูลสุขภาพ — R4.1 (v0.2.1)
+ * WellNest+ · ฟอร์มบันทึกข้อมูลสุขภาพ — R4.1 (v0.2.1) · [v0.3.0 P2 Lite] เพิ่ม gate
  * โครง 3 เลเยอร์เดียวกับ dashboard: (1) CONFIG (2) DATA/API (3) RENDER
  * Pure HTML/CSS/JS · standalone-ready · sanitizeHTML ทุกจุด innerHTML
+ * [v0.3.0] gate: start() เช็ค whoami ก่อน — ยังไม่ผูก Citizens → redirect register.html · ผูกแล้ว → โชว์ชื่อจริง+Cxxxx
  * ===================================================================== */
 
 /* ---------- (1) CONFIG — ใช้ค่าชุดเดียวกับ index.html ---------- */
@@ -373,6 +374,22 @@ function saveRecord(payload) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
     });
+}
+
+// [v0.3.0 · P2 Lite] probe: uid นี้ผูก Citizens แล้วหรือยัง (ให้ gate ใช้ก่อนโชว์ฟอร์ม)
+function checkWhoami(uid) {
+  var url = CONFIG.GAS_ENDPOINT + '?action=whoami&uid=' + encodeURIComponent(uid);
+  return fetch(url, { method: 'GET', redirect: 'follow' })
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    });
+}
+
+// [v0.3.0 · P2 Lite] URL หน้า register.html (คง uid กรณี standalone; ใน LIFF ใช้ relative)
+function registerUrl() {
+  var q = new URLSearchParams(location.search).get('uid');
+  return q ? ('register.html?uid=' + encodeURIComponent(q)) : 'register.html';
 }
 
 /* ---------- (3) RENDER / FLOW ---------- */
@@ -500,9 +517,19 @@ function start() {
 
       // prefill: ชื่อผู้บันทึก = ชื่อจาก LINE (ถ้ามี) ไม่งั้น 'ตนเอง'
       document.getElementById('fRecorder').value = user.name || 'ตนเอง';
-      document.getElementById('whoName').textContent = user.name || '(บัญชีตัวอย่าง)';
-      document.getElementById('whoCid').textContent = '—';
-      showState('formView');
+
+      // [v0.3.0 · P2 Lite] gate: เช็ค Citizens ก่อนโชว์ฟอร์ม
+      //   ยังไม่ผูก -> เด้งไป register.html (แก้รากวงจรไก่กับไข่)
+      //   ผูกแล้ว   -> โชว์ชื่อจริง + รหัส Cxxxx (แทน placeholder เดิม)
+      return checkWhoami(user.uid).then(function (info) {
+        if (!info || pick(info, 'linked') !== true) {
+          location.href = registerUrl();   // ยังไม่ลงทะเบียน → ไปหน้าลงทะเบียน
+          return;
+        }
+        document.getElementById('whoName').textContent = pick(info, 'name') || user.name || '(ไม่พบชื่อ)';
+        document.getElementById('whoCid').textContent  = pick(info, 'citizen_id', 'citizenId') || '—';
+        showState('formView');
+      });
     })
     .catch(function (e) {
       console.error(e);
