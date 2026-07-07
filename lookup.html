@@ -133,6 +133,12 @@ body {
   background: var(--rose-050); color: var(--rose-600); border-color: var(--rose-100);
 }
 .empty { text-align: center; color: var(--muted); padding: 28px 12px; }
+/* R5.1: จอแคบ (≤360px) — ให้การ์ดผลค้นหา wrap ปุ่มลงบรรทัดล่างเต็มความกว้าง
+   กัน badge consent / ชื่อ ถูกปุ่ม "ดูข้อมูล" เบียดจนตัด */
+@media (max-width: 360px) {
+  .result-item { flex-wrap: wrap; }
+  .result-item .view-btn { flex: 1 0 100%; margin-top: 4px; }
+}
 
 /* ================= รายละเอียด (detail) ================= */
 .back-link {
