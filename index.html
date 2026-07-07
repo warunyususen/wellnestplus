@@ -127,7 +127,7 @@ body {
 /* ================= AI summary ================= */
 .ai-panel { display: flex; flex-direction: column; gap: 12px; }
 .ai-panel .btn { align-self: flex-start; }
-.ai-result { font-size: .96rem; line-height: 1.75; color: var(--ink); }
+.ai-result { font-size: .96rem; line-height: 1.75; color: var(--ink); max-height: 340px; overflow-y: auto; padding-right: 4px; }
 .ai-result.empty { color: var(--muted); font-size: .86rem; }
 .btn[disabled] { opacity: .6; cursor: default; }
 
@@ -470,7 +470,7 @@ function renderCharts(pop, vac) {
     legend: { bottom: 0 },
     series: [{
       type: 'pie', radius: ['45%', '70%'], center: ['50%', '45%'],
-      label: { formatter: '{b}\n{c}' },
+      label: { formatter: '{c}' },
       data: vacPairs
     }]
   });
