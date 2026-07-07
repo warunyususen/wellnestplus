@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WellNest+ · ลงทะเบียนผู้ใช้ (เดโม)</title>
+
+<!-- ฟอนต์ Sarabun + fallback ระบบ (เหมือน form/dashboard) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+/* ================= ธีมสี (ยกชุดเดียวกับ form.html เพื่อความสม่ำเสมอ) ================= */
+:root {
+  --teal-700: #0f766e;
+  --teal-600: #0d9488;
+  --teal-500: #14b8a6;
+  --teal-100: #ccfbf1;
+  --teal-050: #f0fdfa;
+  --amber-600: #d97706;
+  --amber-050: #fffbeb;
+  --rose-600: #e11d48;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --surface: #ffffff;
+  --bg: #f6f8f9;
+  --shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.06);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Sarabun', -apple-system, 'Segoe UI', 'Noto Sans Thai', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 640px; margin: 0 auto; padding: 16px; }
+
+/* ================= Header (เหมือน form.html) ================= */
+.topbar {
+  background: linear-gradient(135deg, var(--teal-700), var(--teal-500));
+  color: #fff;
+}
+.topbar .wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 18px 16px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand .mark {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(255,255,255,.15); display: grid; place-items: center; flex: none;
+}
+.brand h1 { font-size: 1.2rem; font-weight: 700; margin: 0; letter-spacing: .2px; }
+.brand p { margin: 0; font-size: .8rem; opacity: .9; }
+.spacer { flex: 1 1 auto; }
+.badge-demo {
+  background: #fff; color: var(--teal-700); font-weight: 700;
+  font-size: .72rem; padding: 4px 10px; border-radius: 999px; letter-spacing: .3px;
+}
+
+/* ================= State (loading/error/…) ================= */
+.state { display: none; text-align: center; padding: 56px 20px; color: var(--muted); }
+.state.show { display: block; }
+.state .icon { font-size: 2.4rem; margin-bottom: 8px; }
+.state h2 { color: var(--ink); font-size: 1.1rem; margin: 6px 0; }
+.state code {
+  background: #eef2f4; padding: 2px 7px; border-radius: 6px; font-size: .85rem; word-break: break-all;
+}
+.spinner {
+  width: 34px; height: 34px; margin: 0 auto 12px;
+  border: 3px solid var(--teal-100); border-top-color: var(--teal-600);
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ================= ปุ่ม ================= */
+.btn {
+  display: inline-block; cursor: pointer;
+  background: var(--teal-600); color: #fff; border: 0; font-family: inherit;
+  font-size: .95rem; font-weight: 600; padding: 11px 20px; border-radius: 10px;
+}
+.btn:hover { background: var(--teal-700); }
+.btn[disabled] { opacity: .55; cursor: default; }
+.btn.block { width: 100%; padding: 13px; font-size: 1rem; }
+.btn.ghost { background: transparent; color: var(--teal-700); border: 1px solid var(--teal-600); }
+.btn.ghost:hover { background: var(--teal-050); }
+
+/* ================= การ์ด/ฟอร์ม ================= */
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 18px 16px; box-shadow: var(--shadow); margin-top: 14px;
+}
+.who {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--teal-050); border: 1px solid var(--teal-100);
+  border-radius: 12px; padding: 12px 14px; font-size: .9rem;
+}
+.who .who-ic { font-size: 1.3rem; }
+.who b { color: var(--teal-700); }
+
+.field { margin-top: 14px; }
+.field label { display: block; font-size: .9rem; font-weight: 600; margin-bottom: 6px; }
+.field .req { color: var(--rose-600); }
+.field .hint { font-weight: 400; color: var(--muted); font-size: .8rem; }
+.field input, .field textarea, .field select {
+  width: 100%; font-family: inherit; font-size: 1rem; color: var(--ink);
+  padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  outline: none; border-color: var(--teal-500); box-shadow: 0 0 0 3px var(--teal-100);
+}
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.unit { color: var(--muted); font-weight: 400; font-size: .82rem; }
+
+.group-title {
+  font-size: .74rem; font-weight: 700; color: var(--teal-600);
+  text-transform: uppercase; letter-spacing: .6px; margin: 18px 2px 2px;
+}
+
+/* ================= consent (PDPA) ================= */
+.consent {
+  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+  background: var(--amber-050); border: 1px solid #fde68a;
+  border-radius: 12px; padding: 12px 14px; margin-top: 16px; font-size: .86rem; color: #7c5b12;
+}
+.consent input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: var(--teal-600); }
+.consent b { color: var(--amber-600); }
+
+/* กล่องแจ้ง error ในฟอร์ม */
+.form-msg {
+  display: none; margin-top: 14px; padding: 11px 13px; border-radius: 10px;
+  font-size: .9rem; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+}
+.form-msg.show { display: block; }
+
+/* ================= สำเร็จ ================= */
+.ok-box { text-align: center; padding: 8px 4px; }
+.ok-box .icon { font-size: 3rem; }
+.ok-box h2 { margin: 8px 0 4px; font-size: 1.2rem; }
+.ok-detail {
+  text-align: left; margin: 14px auto 0; max-width: 360px;
+  background: var(--teal-050); border: 1px solid var(--teal-100);
+  border-radius: 12px; padding: 12px 14px; font-size: .92rem;
+}
+.ok-detail div { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
+.ok-detail .lbl { color: var(--muted); }
+.ok-detail .val { font-weight: 600; }
+
+/* ================= Footer ================= */
+.foot {
+  margin: 20px 0 12px; padding: 12px 14px; font-size: .8rem; color: var(--muted);
+  background: var(--teal-050); border: 1px solid var(--teal-100); border-radius: 12px;
+}
+.foot b { color: var(--teal-700); }
+
+@media (max-width: 420px) {
+  .row2 { grid-template-columns: 1fr; }
+  .brand h1 { font-size: 1.05rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== Header ===================== -->
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 21s-7-4.5-9.2-9.2C1.2 8.4 3 5 6.3 5c1.9 0 3.2 1 3.7 2 .5 1 .5 1 .5 1s0-0 .5-1c.5-1 1.8-2 3.7-2C21 5 22.8 8.4 21.2 11.8 19 16.5 12 21 12 21z" fill="#fff" opacity=".92"/>
+          <path d="M9.2 12h1.6l.7-2 1.3 3.4.7-1.4h1.6" stroke="var(--teal-700)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <div>
+        <h1>ลงทะเบียนผู้ใช้</h1>
+        <p>WellNest+ · เทศบาลนครพระนครศรีอยุธยา</p>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <span class="badge-demo">เดโม · MOCK</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ===== States ===== -->
+  <section class="state show" id="state-loading">
+    <div class="spinner"></div>
+    <p>กำลังเตรียมฟอร์มลงทะเบียน…</p>
+  </section>
+
+  <section class="state" id="state-needuid">
+    <div class="icon">🔑</div>
+    <h2>ต้องระบุผู้ใช้ก่อนลงทะเบียน</h2>
+    <p>เปิดผ่าน LINE (LIFF) หรือเปิดแบบ standalone โดยเติมพารามิเตอร์ท้าย URL:<br>
+      <code>?uid=U_ตัวอย่าง</code></p>
+  </section>
+
+  <section class="state" id="state-already">
+    <div class="icon">✅</div>
+    <h2>บัญชีนี้ลงทะเบียนแล้ว</h2>
+    <p id="alreadyMsg">คุณมีข้อมูลในระบบอยู่แล้ว ไปที่หน้าบันทึกข้อมูลสุขภาพได้เลยค่ะ</p>
+    <button class="btn" id="goFormBtn2" style="margin-top:14px">ไปบันทึกข้อมูลสุขภาพ</button>
+  </section>
+
+  <section class="state" id="state-error">
+    <div class="icon">⚠️</div>
+    <h2>เกิดข้อผิดพลาด</h2>
+    <p id="errMsg">ตรวจการเชื่อมต่อหรือค่า GAS_ENDPOINT แล้วลองอีกครั้ง</p>
+    <button class="btn" id="retryBtn" style="margin-top:14px">ลองใหม่</button>
+  </section>
+
+  <!-- ===== ฟอร์มลงทะเบียน (แสดงเมื่อพร้อม) ===== -->
+  <section id="registerView" style="display:none">
+    <div class="card">
+      <div class="who">
+        <span class="who-ic">🌿</span>
+        <div>ลงทะเบียนในนามบัญชี LINE<br>
+          <b id="whoName">—</b>
+        </div>
+      </div>
+
+      <div class="group-title">ข้อมูลส่วนตัว</div>
+      <div class="row2">
+        <div class="field">
+          <label for="fPrefix">คำนำหน้า</label>
+          <select id="fPrefix">
+            <option value="">— เลือก —</option>
+            <option value="นาย">นาย</option>
+            <option value="นาง">นาง</option>
+            <option value="นางสาว">นางสาว</option>
+            <option value="เด็กชาย">เด็กชาย</option>
+            <option value="เด็กหญิง">เด็กหญิง</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fGender">เพศ</label>
+          <select id="fGender">
+            <option value="">— เลือก —</option>
+            <option value="ชาย">ชาย</option>
+            <option value="หญิง">หญิง</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="fFirst">ชื่อ <span class="req">*</span></label>
+          <input type="text" id="fFirst" maxlength="40" placeholder="ชื่อจริง" />
+        </div>
+        <div class="field">
+          <label for="fLast">นามสกุล</label>
+          <input type="text" id="fLast" maxlength="40" placeholder="นามสกุล" />
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="fBirth">วันเกิด</label>
+          <input type="date" id="fBirth" />
+        </div>
+        <div class="field">
+          <label for="fPhone">เบอร์โทร <span class="unit">(ไม่บังคับ)</span></label>
+          <input type="tel" id="fPhone" inputmode="tel" maxlength="20" placeholder="เช่น 081-234-5678" />
+        </div>
+      </div>
+      <div class="field">
+        <label for="fZone">ชุมชน/โซนที่อยู่อาศัย</label>
+        <select id="fZone">
+          <option value="">— เลือกชุมชน —</option>
+          <option value="ชุมชนท่าวาสุกรี">ชุมชนท่าวาสุกรี</option>
+          <option value="ชุมชนประตูชัย">ชุมชนประตูชัย</option>
+          <option value="ชุมชนป้อมเพชร">ชุมชนป้อมเพชร</option>
+          <option value="ชุมชนหัวรอ">ชุมชนหัวรอ</option>
+          <option value="ชุมชนบ้านป้อม">ชุมชนบ้านป้อม</option>
+          <option value="ชุมชนสวนพริก">ชุมชนสวนพริก</option>
+          <option value="ชุมชนวัดใหญ่">ชุมชนวัดใหญ่</option>
+          <option value="ชุมชนคลองมะขามเรียง">ชุมชนคลองมะขามเรียง</option>
+          <option value="ชุมชนวัดพระงาม">ชุมชนวัดพระงาม</option>
+          <option value="ชุมชนหอรัตนไชย">ชุมชนหอรัตนไชย</option>
+        </select>
+      </div>
+
+      <!-- PDPA consent (บังคับ) -->
+      <label class="consent" for="fConsent">
+        <input type="checkbox" id="fConsent" />
+        <span><b>ยินยอม (PDPA):</b> ข้าพเจ้ายินยอมให้เทศบาลนครพระนครศรีอยุธยาเก็บและใช้ข้อมูลสุขภาพของข้าพเจ้าเพื่อการดูแลสุขภาพเชิงป้องกัน · ข้อมูลทั้งหมดในระบบนี้เป็นเดโม (mock)</span>
+      </label>
+
+      <div class="form-msg" id="formMsg"></div>
+
+      <div class="field">
+        <button class="btn block" id="submitBtn" disabled>ลงทะเบียน</button>
+      </div>
+    </div>
+
+    <div class="foot">
+      <b>หมายเหตุ:</b> ลงทะเบียนในฐานะ "ประชาชน" · ข้อมูลทั้งหมดเป็นเดโม (mock) เพื่อสาธิตระบบเท่านั้น
+    </div>
+  </section>
+
+  <!-- ===== สำเร็จ ===== -->
+  <section id="successView" style="display:none">
+    <div class="card">
+      <div class="ok-box">
+        <div class="icon">🎉</div>
+        <h2>ลงทะเบียนสำเร็จ</h2>
+        <p class="unit">กำลังพาไปหน้าบันทึกข้อมูลสุขภาพ…</p>
+        <div class="ok-detail" id="okDetail"></div>
+        <div class="field" style="max-width:360px;margin:16px auto 0">
+          <button class="btn block" id="goFormBtn">ไปบันทึกข้อมูลสุขภาพ</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* =======================================================================
+ * WellNest+ · ฟอร์มลงทะเบียนผู้ใช้ใหม่ — P2 Lite (v0.3.0)
+ * โครง 3 เลเยอร์เดียวกับ form.html: (1) CONFIG (2) DATA/API (3) RENDER/FLOW
+ * Pure HTML/CSS/JS · standalone-ready · sanitizeHTML ทุกจุด innerHTML
+ * flow: getProfile ได้ uid/displayName -> whoami เช็คว่าลงทะเบียนแล้วหรือยัง
+ *        -> ยัง = ฟอร์ม · แล้ว = state-already (พาไป form.html)
+ * ===================================================================== */
+
+/* ---------- (1) CONFIG — ใช้ค่าชุดเดียวกับ form.html/index.html ---------- */
+var CONFIG = {
+  // Web App URL ของ GAS (ลงท้าย /exec) — ต้องเป็นตัวเดียวกับ form/dashboard
+  GAS_ENDPOINT: 'https://script.google.com/macros/s/AKfycbytehtJ7LPFPC4FSzHVhZ5jlffuXdqn_g3YxpxA_mzE_grNRjBcjoOzbXb0G050hy6l/exec',
+
+  // LIFF ID (LINE Login channel 2010607260) — ใช้เฉพาะตอนเปิดผ่าน LINE
+  LIFF_ID: '2010607260-KL8yEdCU',
+
+  LIFF_SRC: 'https://static.line-scdn.net/liff/edge/2/sdk.js'
+};
+
+/* ---------- (2) DATA / API ---------- */
+
+// กัน XSS: แปลงข้อความให้ปลอดภัยก่อนยัดเข้า innerHTML (เหมือน form.html)
+function sanitizeHTML(str) {
+  var d = document.createElement('div');
+  d.textContent = (str == null) ? '' : String(str);
+  return d.innerHTML;
+}
+
+// อ่านค่าจาก object รองรับทั้ง snake_case และ camelCase (เหมือน form.html)
+function pick(obj) {
+  if (!obj) return undefined;
+  for (var i = 1; i < arguments.length; i++) {
+    if (obj[arguments[i]] !== undefined) return obj[arguments[i]];
+  }
+  return undefined;
+}
+
+// โหลด external script พร้อม timeout (คืน Promise)
+function loadScript(src, timeoutMs) {
+  return new Promise(function (resolve, reject) {
+    var done = false;
+    var s = document.createElement('script');
+    s.src = src; s.async = true;
+    var timer = setTimeout(function () {
+      if (!done) { done = true; reject(new Error('timeout: ' + src)); }
+    }, timeoutMs || 8000);
+    s.onload = function () { if (!done) { done = true; clearTimeout(timer); resolve(); } };
+    s.onerror = function () { if (!done) { done = true; clearTimeout(timer); reject(new Error('load error: ' + src)); } };
+    document.head.appendChild(s);
+  });
+}
+
+// หา uid + displayName: ?uid= (standalone) มาก่อน แล้วค่อย LIFF (เหมือน form.html)
+function resolveUser() {
+  return new Promise(function (resolve) {
+    var q = new URLSearchParams(location.search).get('uid');
+    if (q && q.trim()) { resolve({ uid: q.trim(), name: '' }); return; }
+
+    var liffConfigured = CONFIG.LIFF_ID && CONFIG.LIFF_ID.indexOf('XXXX') === -1;
+    if (!liffConfigured) { resolve(null); return; }
+
+    loadScript(CONFIG.LIFF_SRC, 8000)
+      .then(function () { return liff.init({ liffId: CONFIG.LIFF_ID }); })
+      .then(function () {
+        if (liff.isLoggedIn()) {
+          return liff.getProfile().then(function (p) {
+            resolve({ uid: p.userId, name: p.displayName || '' });
+          });
+        }
+        liff.login();          // เด้งไปล็อกอิน แล้วหน้าจะรีโหลดกลับมา
+        resolve(null);
+      })
+      .catch(function (e) { console.warn('LIFF ไม่พร้อม:', e); resolve(null); });
+  });
+}
+
+// probe: uid นี้ผูก Citizens แล้วหรือยัง (GET ธรรมดา ไม่มี custom header)
+function checkWhoami(uid) {
+  var url = CONFIG.GAS_ENDPOINT + '?action=whoami&uid=' + encodeURIComponent(uid);
+  return fetch(url, { method: 'GET', redirect: 'follow' })
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    });
+}
+
+// ส่งลงทะเบียน (GET ธรรมดา ไม่มี custom header → เลี่ยง CORS preflight)
+function registerUser(payload) {
+  var qs = [];
+  for (var k in payload) {
+    if (payload.hasOwnProperty(k) && payload[k] !== '' && payload[k] != null) {
+      qs.push(encodeURIComponent(k) + '=' + encodeURIComponent(payload[k]));
+    }
+  }
+  var url = CONFIG.GAS_ENDPOINT + '?action=register&' + qs.join('&');
+  return fetch(url, { method: 'GET', redirect: 'follow' })
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    });
+}
+
+/* ---------- (3) RENDER / FLOW ---------- */
+
+var CURRENT_UID = null;
+
+function showState(id) {
+  ['state-loading', 'state-needuid', 'state-already', 'state-error'].forEach(function (s) {
+    var el = document.getElementById(s);
+    if (el) el.classList.toggle('show', s === id);
+  });
+  document.getElementById('registerView').style.display = (id === 'registerView') ? 'block' : 'none';
+  document.getElementById('successView').style.display  = (id === 'successView')  ? 'block' : 'none';
+}
+
+function val(id) { return (document.getElementById(id).value || '').trim(); }
+
+function showFormMsg(text) {
+  var box = document.getElementById('formMsg');
+  box.textContent = text;          // textContent = ปลอดภัยจาก XSS อยู่แล้ว
+  box.classList.add('show');
+}
+function clearFormMsg() {
+  document.getElementById('formMsg').classList.remove('show');
+}
+
+// URL หน้า form.html สำหรับพากลับ (คง uid กรณี standalone; ใน LIFF ใช้ relative)
+function formUrl() {
+  var q = new URLSearchParams(location.search).get('uid');
+  return q ? ('form.html?uid=' + encodeURIComponent(q)) : 'form.html';
+}
+function goToForm() { location.href = formUrl(); }
+
+// เปิด/ปิดปุ่มลงทะเบียนตาม consent (ต้องติ๊กก่อน)
+function syncSubmitEnabled() {
+  var ok = document.getElementById('fConsent').checked;
+  document.getElementById('submitBtn').disabled = !ok;
+}
+
+function onSubmit() {
+  clearFormMsg();
+
+  if (!document.getElementById('fConsent').checked) {
+    showFormMsg('กรุณายอมรับความยินยอม (PDPA) ก่อนลงทะเบียนค่ะ');
+    return;
+  }
+  var first = val('fFirst');
+  if (!first) {
+    showFormMsg('กรุณากรอกชื่อค่ะ');
+    return;
+  }
+
+  var payload = {
+    uid:        CURRENT_UID,
+    prefix:     val('fPrefix'),
+    first_name: first,
+    last_name:  val('fLast'),
+    gender:     val('fGender'),
+    birth_date: val('fBirth'),
+    zone:       val('fZone'),
+    phone:      val('fPhone'),
+    consent:    '1'
+  };
+
+  var btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'กำลังลงทะเบียน…';
+
+  registerUser(payload)
+    .then(function (data) {
+      if (!data || pick(data, 'ok') === false) {
+        throw new Error((data && pick(data, 'message')) || 'ลงทะเบียนไม่สำเร็จ');
+      }
+      renderSuccess(data);
+    })
+    .catch(function (e) {
+      showFormMsg('ลงทะเบียนไม่สำเร็จ: ' + (e && e.message ? e.message : 'error') + ' — ลองใหม่อีกครั้ง');
+      btn.disabled = false; btn.textContent = 'ลงทะเบียน';
+    });
+}
+
+function renderSuccess(data) {
+  var cid  = pick(data, 'citizen_id', 'citizenId') || '';
+  var name = pick(data, 'name') || '';
+  var rows = [
+    { lbl: 'ชื่อ',         val: name },
+    { lbl: 'รหัส (เดโม)', val: cid }
+  ];
+  var html = '';
+  for (var i = 0; i < rows.length; i++) {
+    html += '<div><span class="lbl">' + sanitizeHTML(rows[i].lbl) + '</span>' +
+            '<span class="val">' + sanitizeHTML(rows[i].val) + '</span></div>';
+  }
+  document.getElementById('okDetail').innerHTML = html;
+  showState('successView');
+  // พาไปหน้าบันทึกอัตโนมัติ (มีปุ่มสำรองให้กดเองด้วย)
+  setTimeout(goToForm, 1800);
+}
+
+function start() {
+  showState('state-loading');
+
+  if (CONFIG.GAS_ENDPOINT.indexOf('XXXX') !== -1) {
+    document.getElementById('errMsg').textContent = 'ยังไม่ได้ตั้งค่า GAS_ENDPOINT ในไฟล์ (ดูส่วน CONFIG)';
+    showState('state-error');
+    return;
+  }
+
+  resolveUser()
+    .then(function (user) {
+      if (!user || !user.uid) { showState('state-needuid'); return; }
+      CURRENT_UID = user.uid;
+      document.getElementById('whoName').textContent = user.name || '(บัญชี LINE)';
+
+      // เช็คก่อน: ถ้าผูก Citizens แล้ว ไม่ต้องลงทะเบียนซ้ำ → พาไปหน้าบันทึก
+      return checkWhoami(user.uid).then(function (info) {
+        if (info && pick(info, 'linked') === true) {
+          var nm = pick(info, 'name');
+          if (nm) {
+            document.getElementById('alreadyMsg').textContent =
+              'คุณ ' + nm + ' มีข้อมูลในระบบอยู่แล้ว ไปที่หน้าบันทึกข้อมูลสุขภาพได้เลยค่ะ';
+          }
+          showState('state-already');
+          return;
+        }
+        showState('registerView');
+      });
+    })
+    .catch(function (e) {
+      console.error(e);
+      document.getElementById('errMsg').textContent =
+        'เชื่อมต่อไม่สำเร็จ (' + (e && e.message ? e.message : 'unknown') + ')';
+      showState('state-error');
+    });
+}
+
+document.getElementById('fConsent').addEventListener('change', syncSubmitEnabled);
+document.getElementById('submitBtn').addEventListener('click', onSubmit);
+document.getElementById('goFormBtn').addEventListener('click', goToForm);
+document.getElementById('goFormBtn2').addEventListener('click', goToForm);
+document.getElementById('retryBtn').addEventListener('click', start);
+start();
+</script>
+</body>
+</html>
