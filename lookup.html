@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WellNest+ · ค้นข้อมูลรายบุคคล (เดโม)</title>
+
+<!-- ฟอนต์ Sarabun + fallback ระบบ (เหมือน dashboard/form) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+/* ================= ธีมสี (ยกชุดเดียวกับ dashboard/form เพื่อความสม่ำเสมอ) ================= */
+:root {
+  --teal-700: #0f766e;
+  --teal-600: #0d9488;
+  --teal-500: #14b8a6;
+  --teal-100: #ccfbf1;
+  --teal-050: #f0fdfa;
+  --amber-600: #d97706;
+  --amber-050: #fffbeb;
+  --rose-600: #e11d48;
+  --rose-050: #fff1f2;
+  --rose-100: #ffe4e6;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --surface: #ffffff;
+  --bg: #f6f8f9;
+  --shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.06);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Sarabun', -apple-system, 'Segoe UI', 'Noto Sans Thai', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 640px; margin: 0 auto; padding: 16px; }
+
+/* ================= Header (เหมือน dashboard/form) ================= */
+.topbar {
+  background: linear-gradient(135deg, var(--teal-700), var(--teal-500));
+  color: #fff;
+}
+.topbar .wrap { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 18px 16px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand .mark {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(255,255,255,.15); display: grid; place-items: center; flex: none;
+}
+.brand h1 { font-size: 1.2rem; font-weight: 700; margin: 0; letter-spacing: .2px; }
+.brand p { margin: 0; font-size: .8rem; opacity: .9; }
+.spacer { flex: 1 1 auto; }
+.badge-demo {
+  background: #fff; color: var(--teal-700); font-weight: 700;
+  font-size: .72rem; padding: 4px 10px; border-radius: 999px; letter-spacing: .3px;
+}
+
+/* ================= State (loading/error/unauthorized) ================= */
+.state { display: none; text-align: center; padding: 56px 20px; color: var(--muted); }
+.state.show { display: block; }
+.state .icon { font-size: 2.4rem; margin-bottom: 8px; }
+.state h2 { color: var(--ink); font-size: 1.1rem; margin: 6px 0; }
+.state code {
+  background: #eef2f4; padding: 2px 7px; border-radius: 6px; font-size: .85rem; word-break: break-all;
+}
+.spinner {
+  width: 34px; height: 34px; margin: 0 auto 12px;
+  border: 3px solid var(--teal-100); border-top-color: var(--teal-600);
+  border-radius: 50%; animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ================= ปุ่ม ================= */
+.btn {
+  display: inline-block; cursor: pointer;
+  background: var(--teal-600); color: #fff; border: 0; font-family: inherit;
+  font-size: .95rem; font-weight: 600; padding: 11px 20px; border-radius: 10px;
+}
+.btn:hover { background: var(--teal-700); }
+.btn[disabled] { opacity: .6; cursor: default; }
+.btn.block { width: 100%; padding: 13px; font-size: 1rem; }
+.btn.ghost { background: transparent; color: var(--teal-700); border: 1px solid var(--teal-600); }
+.btn.ghost:hover { background: var(--teal-050); }
+.btn.sm { padding: 7px 14px; font-size: .85rem; border-radius: 8px; }
+
+/* ================= การ์ด ================= */
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 18px 16px; box-shadow: var(--shadow); margin-top: 14px;
+}
+.who {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--teal-050); border: 1px solid var(--teal-100);
+  border-radius: 12px; padding: 12px 14px; font-size: .9rem;
+}
+.who .who-ic { font-size: 1.3rem; }
+.who b { color: var(--teal-700); }
+
+/* ================= ค้นหา ================= */
+.searchbar { display: flex; gap: 8px; margin-top: 4px; }
+.searchbar input {
+  flex: 1 1 auto; font-family: inherit; font-size: 1rem; color: var(--ink);
+  padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff;
+}
+.searchbar input:focus {
+  outline: none; border-color: var(--teal-500); box-shadow: 0 0 0 3px var(--teal-100);
+}
+.search-hint { color: var(--muted); font-size: .8rem; margin: 8px 2px 0; }
+
+/* ================= รายการผลค้นหา (list) ================= */
+.result-count { font-size: .82rem; color: var(--muted); margin: 4px 2px 0; }
+.result-list { margin-top: 6px; }
+.result-item {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; margin-top: 10px; background: #fff;
+}
+.result-item .info { flex: 1 1 auto; min-width: 0; }
+.result-item .nm { font-weight: 600; }
+.result-item .meta { font-size: .8rem; color: var(--muted); }
+.badge-consent {
+  display: inline-block; font-size: .72rem; font-weight: 700;
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  background: var(--teal-050); color: var(--teal-700); border: 1px solid var(--teal-100);
+}
+.badge-consent.no {
+  background: var(--rose-050); color: var(--rose-600); border-color: var(--rose-100);
+}
+.empty { text-align: center; color: var(--muted); padding: 28px 12px; }
+
+/* ================= รายละเอียด (detail) ================= */
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  color: var(--teal-700); font-weight: 600; font-size: .9rem;
+  background: transparent; border: 0; padding: 4px 2px; font-family: inherit;
+}
+.section-title {
+  font-size: .74rem; font-weight: 700; color: var(--teal-600);
+  text-transform: uppercase; letter-spacing: .6px; margin: 18px 2px 6px;
+}
+.kv { background: var(--teal-050); border: 1px solid var(--teal-100); border-radius: 12px; padding: 6px 14px; }
+.kv-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: .92rem; }
+.kv-row + .kv-row { border-top: 1px dashed var(--teal-100); }
+.kv-row .lbl { color: var(--muted); }
+.kv-row .val { font-weight: 600; text-align: right; }
+.mini {
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; margin-top: 8px; font-size: .9rem;
+}
+.mini .mini-top { font-weight: 600; }
+.mini .mini-sub { color: var(--muted); font-size: .82rem; margin-top: 2px; }
+
+/* กล่องแจ้งเตือน blocked/not_found ในหน้า detail */
+.notice {
+  margin-top: 14px; padding: 13px 14px; border-radius: 12px; font-size: .92rem;
+  background: var(--amber-050); border: 1px solid #fde68a; color: #92400e;
+}
+
+/* ================= Footer ================= */
+.foot {
+  margin: 20px 0 12px; padding: 12px 14px; font-size: .8rem; color: var(--muted);
+  background: var(--teal-050); border: 1px solid var(--teal-100); border-radius: 12px;
+}
+.foot b { color: var(--teal-700); }
+
+@media (max-width: 420px) {
+  .brand h1 { font-size: 1.05rem; }
+  .kv-row .val { text-align: right; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== Header ===================== -->
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <circle cx="11" cy="11" r="6.5" stroke="#fff" stroke-width="1.7" fill="none" opacity=".92"/>
+          <path d="M16 16l4 4" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <h1>ค้นข้อมูลรายบุคคล</h1>
+        <p>WellNest+ · สำหรับเจ้าหน้าที่ (เทศบาลนครพระนครศรีอยุธยา)</p>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <span class="badge-demo">เดโม · MOCK</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ===== States ===== -->
+  <section class="state show" id="state-loading">
+    <div class="spinner"></div>
+    <p>กำลังตรวจสอบสิทธิ์…</p>
+  </section>
+
+  <section class="state" id="state-needuid">
+    <div class="icon">🔑</div>
+    <h2>ต้องระบุผู้ใช้ก่อน</h2>
+    <p>เปิดผ่าน LINE (LIFF) หรือเปิดแบบ standalone โดยเติมพารามิเตอร์ท้าย URL:<br>
+      <code>?uid=U_staff_001</code></p>
+  </section>
+
+  <section class="state" id="state-unauthorized">
+    <div class="icon">🚫</div>
+    <h2>บัญชีนี้ไม่มีสิทธิ์ค้นข้อมูลรายบุคคล</h2>
+    <p id="unauthMsg">เฉพาะผู้บริหาร/เจ้าหน้าที่เท่านั้น</p>
+  </section>
+
+  <section class="state" id="state-error">
+    <div class="icon">⚠️</div>
+    <h2>เกิดข้อผิดพลาด</h2>
+    <p id="errMsg">ตรวจการเชื่อมต่อหรือค่า GAS_ENDPOINT แล้วลองอีกครั้ง</p>
+    <button class="btn" id="retryBtn" style="margin-top:14px">ลองใหม่</button>
+  </section>
+
+  <!-- ===== View A: ค้นหา + ผลลัพธ์ (แสดงเมื่อมีสิทธิ์) ===== -->
+  <section id="searchView" style="display:none">
+    <div class="card">
+      <div class="who">
+        <span class="who-ic">🔎</span>
+        <div>ค้นในนาม <b id="viewerName">—</b><br>
+          <span class="unit" style="color:var(--muted);font-size:.82rem">บทบาท: <span id="viewerRole">—</span></span>
+        </div>
+      </div>
+
+      <div class="searchbar" style="margin-top:14px">
+        <input type="text" id="qInput" maxlength="60" placeholder="พิมพ์รหัส (เช่น C0001) หรือชื่อ" />
+        <button class="btn" id="searchBtn">ค้นหา</button>
+      </div>
+      <p class="search-hint">ค้นจากรหัสประชาชนหรือชื่อ-สกุล · ผลลัพธ์แสดงรายชื่อก่อน ยังไม่เปิดข้อมูลสุขภาพ</p>
+
+      <div class="result-count" id="resultCount" style="display:none"></div>
+      <div class="result-list" id="resultList"></div>
+    </div>
+
+    <div class="foot">
+      <b>หมายเหตุ:</b> ข้อมูลทั้งหมดเป็นเดโม (mock) เพื่อสาธิตระบบเท่านั้น · การเปิดดูข้อมูลรายคนจะถูกบันทึกลง AuditLog (PDPA)
+    </div>
+  </section>
+
+  <!-- ===== View B: รายละเอียดรายคน (detail) ===== -->
+  <section id="detailView" style="display:none">
+    <button class="back-link" id="backBtn">← กลับไปผลค้นหา</button>
+    <div class="card" id="detailCard"></div>
+    <div class="foot">
+      <b>หมายเหตุ:</b> ข้อมูลสุขภาพนี้เป็นเดโม (mock) เพื่อสาธิตระบบเท่านั้น · การเปิดดูถูกบันทึกลง AuditLog แล้ว
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* =======================================================================
+ * WellNest+ · ค้นข้อมูลรายบุคคล (จนท.) — R4.4b (v0.2.4)
+ * โครง 3 เลเยอร์เดียวกับ dashboard/form: (1) CONFIG (2) DATA/API (3) RENDER
+ * Pure HTML/CSS/JS · standalone-ready · sanitizeHTML ทุกจุด innerHTML
+ * backend: ?action=lookup_person (Lookup.gs, R4.4a) — access control + AuditLog อยู่ฝั่ง server
+ * ===================================================================== */
+
+/* ---------- (1) CONFIG — ใช้ค่าชุดเดียวกับ index.html/form.html ---------- */
+var CONFIG = {
+  // Web App URL ของ GAS (ลงท้าย /exec) — ต้องเป็นตัวเดียวกับ dashboard/form
+  GAS_ENDPOINT: 'https://script.google.com/macros/s/AKfycbytehtJ7LPFPC4FSzHVhZ5jlffuXdqn_g3YxpxA_mzE_grNRjBcjoOzbXb0G050hy6l/exec',
+
+  // LIFF ID (LINE Login channel 2010607260) — ใช้เฉพาะตอนเปิดผ่าน LINE
+  LIFF_ID: '2010607260-KL8yEdCU',
+
+  LIFF_SRC: 'https://static.line-scdn.net/liff/edge/2/sdk.js'
+};
+
+/* ---------- (2) DATA / API ---------- */
+
+// กัน XSS: แปลงข้อความให้ปลอดภัยก่อนยัดเข้า innerHTML (เหมือน dashboard/form)
+function sanitizeHTML(str) {
+  var d = document.createElement('div');
+  d.textContent = (str == null) ? '' : String(str);
+  return d.innerHTML;
+}
+
+// อ่านค่าจาก object รองรับทั้ง snake_case และ camelCase (เหมือน dashboard/form)
+function pick(obj) {
+  if (!obj) return undefined;
+  for (var i = 1; i < arguments.length; i++) {
+    if (obj[arguments[i]] !== undefined) return obj[arguments[i]];
+  }
+  return undefined;
+}
+
+// แสดงค่า — ว่าง/undefined ให้ขึ้นขีด
+function fmt(v) {
+  return (v === '' || v === null || v === undefined) ? '—' : String(v);
+}
+
+// โหลด external script พร้อม timeout (คืน Promise)
+function loadScript(src, timeoutMs) {
+  return new Promise(function (resolve, reject) {
+    var done = false;
+    var s = document.createElement('script');
+    s.src = src; s.async = true;
+    var timer = setTimeout(function () {
+      if (!done) { done = true; reject(new Error('timeout: ' + src)); }
+    }, timeoutMs || 8000);
+    s.onload = function () { if (!done) { done = true; clearTimeout(timer); resolve(); } };
+    s.onerror = function () { if (!done) { done = true; clearTimeout(timer); reject(new Error('load error: ' + src)); } };
+    document.head.appendChild(s);
+  });
+}
+
+// หา uid ของผู้ใช้: ?uid= (standalone) มาก่อน แล้วค่อย LIFF (เหมือน form.html)
+function resolveUser() {
+  return new Promise(function (resolve) {
+    var q = new URLSearchParams(location.search).get('uid');
+    if (q && q.trim()) { resolve({ uid: q.trim(), name: '' }); return; }
+
+    var liffConfigured = CONFIG.LIFF_ID && CONFIG.LIFF_ID.indexOf('XXXX') === -1;
+    if (!liffConfigured) { resolve(null); return; }
+
+    loadScript(CONFIG.LIFF_SRC, 8000)
+      .then(function () { return liff.init({ liffId: CONFIG.LIFF_ID }); })
+      .then(function () {
+        if (liff.isLoggedIn()) {
+          return liff.getProfile().then(function (p) {
+            resolve({ uid: p.userId, name: p.displayName || '' });
+          });
+        }
+        liff.login();          // เด้งไปล็อกอิน แล้วหน้าจะรีโหลดกลับมา
+        resolve(null);
+      })
+      .catch(function (e) { console.warn('LIFF ไม่พร้อม:', e); resolve(null); });
+  });
+}
+
+// เรียก lookup_person (GET ธรรมดา ไม่มี custom header → เลี่ยง CORS preflight)
+//   opts.mode = 'list' (ค้นรายชื่อ) หรือ 'detail' (เปิดรายคน)
+function callLookup(opts) {
+  opts = opts || {};
+  var qs = ['action=lookup_person', 'uid=' + encodeURIComponent(CURRENT_UID)];
+  if (opts.mode === 'detail') {
+    qs.push('mode=detail');
+    qs.push('cid=' + encodeURIComponent(opts.cid || ''));
+  } else {
+    qs.push('q=' + encodeURIComponent(opts.q || ''));
+  }
+  var url = CONFIG.GAS_ENDPOINT + '?' + qs.join('&');
+  return fetch(url, { method: 'GET', redirect: 'follow' })
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    });
+}
+
+/* ---------- (3) RENDER / FLOW ---------- */
+
+var CURRENT_UID = null;
+var VIEWER = null;
+
+function showState(id) {
+  ['state-loading', 'state-needuid', 'state-unauthorized', 'state-error'].forEach(function (s) {
+    var el = document.getElementById(s);
+    if (el) el.classList.toggle('show', s === id);
+  });
+  document.getElementById('searchView').style.display = (id === 'searchView') ? 'block' : 'none';
+  document.getElementById('detailView').style.display = (id === 'detailView') ? 'block' : 'none';
+}
+
+// ----- View A: render ผลค้นหา (list) -----
+function doSearch() {
+  var q = (document.getElementById('qInput').value || '').trim();
+  var listBox  = document.getElementById('resultList');
+  var countBox = document.getElementById('resultCount');
+
+  if (!q) {
+    countBox.style.display = 'none';
+    listBox.innerHTML = '<div class="empty">พิมพ์รหัสประชาชนหรือชื่อ แล้วกดค้นหา</div>';
+    return;
+  }
+
+  var btn = document.getElementById('searchBtn');
+  btn.disabled = true; btn.textContent = 'กำลังค้น…';
+  listBox.innerHTML = '<div class="empty">กำลังค้นหา…</div>';
+  countBox.style.display = 'none';
+
+  callLookup({ mode: 'list', q: q })
+    .then(function (data) {
+      if (!data || pick(data, 'ok') === false) {
+        // ถ้า role หลุดสิทธิ์ระหว่างทาง
+        if (data && pick(data, 'error') === 'unauthorized') { showState('state-unauthorized'); return; }
+        throw new Error((data && pick(data, 'message')) || 'ค้นหาไม่สำเร็จ');
+      }
+      renderResults(data);
+    })
+    .catch(function (e) {
+      listBox.innerHTML = '<div class="empty">ค้นหาไม่สำเร็จ: ' + sanitizeHTML(e && e.message ? e.message : 'error') + '</div>';
+    })
+    .then(function () {
+      btn.disabled = false; btn.textContent = 'ค้นหา';
+    });
+}
+
+function renderResults(data) {
+  var results = pick(data, 'results') || [];
+  var count   = pick(data, 'count');
+  var capped  = pick(data, 'capped') === true;
+  var listBox  = document.getElementById('resultList');
+  var countBox = document.getElementById('resultCount');
+
+  if (!results.length) {
+    countBox.style.display = 'none';
+    listBox.innerHTML = '<div class="empty">ไม่พบผลลัพธ์ที่ตรงกับคำค้น</div>';
+    return;
+  }
+
+  countBox.style.display = 'block';
+  countBox.textContent = 'พบ ' + (count != null ? count : results.length) + ' รายการ' +
+                         (capped ? ' (แสดงบางส่วน — ลองพิมพ์ให้เจาะจงขึ้น)' : '');
+
+  var html = '';
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    var cid  = pick(r, 'citizen_id', 'citizenId') || '';
+    var name = pick(r, 'name') || '';
+    var zone = pick(r, 'zone') || '';
+    var consent = pick(r, 'has_consent', 'hasConsent') === true;
+
+    var badge = consent
+      ? '<span class="badge-consent">ยินยอม PDPA</span>'
+      : '<span class="badge-consent no">ไม่ยินยอม PDPA</span>';
+
+    html += '' +
+      '<div class="result-item">' +
+        '<div class="info">' +
+          '<div class="nm">' + sanitizeHTML(name) + '</div>' +
+          '<div class="meta">' + sanitizeHTML(cid) +
+            (zone ? ' · ' + sanitizeHTML(zone) : '') + '</div>' +
+          '<div style="margin-top:6px">' + badge + '</div>' +
+        '</div>' +
+        '<button class="btn sm view-btn" data-cid="' + sanitizeHTML(cid) + '">ดูข้อมูล →</button>' +
+      '</div>';
+  }
+  listBox.innerHTML = html;
+
+  // ผูก event ให้ปุ่ม "ดูข้อมูล" (consent=ไม่ ก็กดได้ → backend คืน blocked + log การพยายามเปิด)
+  var btns = listBox.querySelectorAll('.view-btn');
+  for (var j = 0; j < btns.length; j++) {
+    btns[j].addEventListener('click', function () {
+      openDetail(this.getAttribute('data-cid'));
+    });
+  }
+}
+
+// ----- View B: เปิดรายละเอียดรายคน (detail) -----
+function openDetail(cid) {
+  if (!cid) return;
+  var card = document.getElementById('detailCard');
+  card.innerHTML = '<div class="empty">กำลังโหลดข้อมูล…</div>';
+  showState('detailView');
+  window.scrollTo(0, 0);
+
+  callLookup({ mode: 'detail', cid: cid })
+    .then(function (data) {
+      if (data && pick(data, 'error') === 'unauthorized') { showState('state-unauthorized'); return; }
+      renderDetail(data);
+    })
+    .catch(function (e) {
+      card.innerHTML = '<div class="notice">โหลดข้อมูลไม่สำเร็จ: ' +
+        sanitizeHTML(e && e.message ? e.message : 'error') + '</div>';
+    });
+}
+
+function renderDetail(data) {
+  var card = document.getElementById('detailCard');
+  var err  = pick(data, 'error');
+
+  // ไม่พบตัวตน
+  if (err === 'not_found') {
+    card.innerHTML = '<div class="notice">' + sanitizeHTML(pick(data, 'message') || 'ไม่พบข้อมูล') + '</div>';
+    return;
+  }
+
+  // ไม่ยินยอม PDPA — พบตัวตน แต่ไม่โชว์ข้อมูลสุขภาพ
+  if (err === 'blocked_consent') {
+    var bname = pick(data, 'name') || '';
+    var bcid  = pick(data, 'citizen_id', 'citizenId') || '';
+    card.innerHTML = '' +
+      '<div class="who"><span class="who-ic">🔒</span>' +
+        '<div><b>' + sanitizeHTML(bname) + '</b><br>' +
+          '<span class="meta" style="color:var(--muted);font-size:.82rem">' + sanitizeHTML(bcid) + '</span></div>' +
+      '</div>' +
+      '<div class="notice">' + sanitizeHTML(pick(data, 'message') || 'เจ้าของข้อมูลไม่ได้ให้ความยินยอม (PDPA)') + '</div>';
+    return;
+  }
+
+  // ปกติ — ประกอบข้อมูลสุขภาพ
+  var person = pick(data, 'person') || {};
+  var name = pick(person, 'name') || '';
+  var cid  = pick(person, 'citizen_id', 'citizenId') || '';
+
+  var html = '' +
+    '<div class="who"><span class="who-ic">🌿</span>' +
+      '<div>ข้อมูลของ <b>' + sanitizeHTML(name) + '</b><br>' +
+        '<span class="meta" style="color:var(--muted);font-size:.82rem">รหัส (เดโม): ' + sanitizeHTML(cid) + '</span></div>' +
+    '</div>';
+
+  // ข้อมูลบุคคล
+  html += '<div class="section-title">ข้อมูลบุคคล</div>';
+  html += kvBlock([
+    { lbl: 'เพศ',            val: fmt(pick(person, 'gender')) },
+    { lbl: 'อายุ',           val: pick(person, 'age') != null ? (pick(person, 'age') + ' ปี') : '—' },
+    { lbl: 'โซน/ชุมชน',      val: fmt(pick(person, 'zone')) },
+    { lbl: 'สถานะ',          val: fmt(pick(person, 'status')) },
+    { lbl: 'ผู้ป่วยติดเตียง', val: fmt(pick(person, 'bedridden')) },
+    { lbl: 'โรคประจำตัว',    val: fmt(pick(person, 'chronic_diseases', 'chronicDiseases')) }
+  ]);
+
+  // ผลตรวจล่าสุด
+  var latest = pick(data, 'latest_record', 'latestRecord');
+  html += '<div class="section-title">ผลตรวจล่าสุด</div>';
+  if (latest) {
+    html += kvBlock([
+      { lbl: 'วันที่',       val: fmt(pick(latest, 'record_date', 'recordDate')) },
+      { lbl: 'ประเภท',       val: fmt(pick(latest, 'type')) },
+      { lbl: 'น้ำหนัก (กก.)', val: fmt(pick(latest, 'weight_kg', 'weightKg')) },
+      { lbl: 'ส่วนสูง (ซม.)', val: fmt(pick(latest, 'height_cm', 'heightCm')) },
+      { lbl: 'BMI',          val: fmt(pick(latest, 'bmi')) },
+      { lbl: 'ความดัน (บน/ล่าง)', val: fmt(pick(latest, 'bp_sys', 'bpSys')) + ' / ' + fmt(pick(latest, 'bp_dia', 'bpDia')) },
+      { lbl: 'น้ำตาล (mg/dL)', val: fmt(pick(latest, 'blood_sugar', 'bloodSugar')) },
+      { lbl: 'แหล่งข้อมูล',   val: fmt(pick(latest, 'source')) }
+    ]);
+    var note = pick(latest, 'notes');
+    if (note) {
+      html += '<div class="mini" style="margin-top:8px"><div class="mini-sub">บันทึก: ' +
+              sanitizeHTML(note) + '</div></div>';
+    }
+  } else {
+    html += '<div class="empty">— ไม่มีผลตรวจในระบบ —</div>';
+  }
+
+  // ยา
+  var meds = pick(data, 'medications') || [];
+  html += '<div class="section-title">ยาที่ได้รับ (' + meds.length + ')</div>';
+  if (meds.length) {
+    for (var m = 0; m < meds.length; m++) {
+      var md = meds[m];
+      html += '<div class="mini">' +
+        '<div class="mini-top">' + sanitizeHTML(fmt(pick(md, 'med_name', 'medName'))) +
+          ' · ' + sanitizeHTML(fmt(pick(md, 'dosage'))) + '</div>' +
+        '<div class="mini-sub">' + sanitizeHTML(fmt(pick(md, 'schedule'))) +
+          ' · คงเหลือ ' + sanitizeHTML(fmt(pick(md, 'qty_remaining', 'qtyRemaining'))) + ' หน่วย' +
+          ' · เติมยา ' + sanitizeHTML(fmt(pick(md, 'refill_date', 'refillDate'))) + '</div>' +
+      '</div>';
+    }
+  } else {
+    html += '<div class="empty">— ไม่มีข้อมูลยา —</div>';
+  }
+
+  // วัคซีน
+  var vaccines = pick(data, 'vaccines') || [];
+  html += '<div class="section-title">วัคซีน (' + vaccines.length + ')</div>';
+  if (vaccines.length) {
+    for (var v = 0; v < vaccines.length; v++) {
+      var vc = vaccines[v];
+      html += '<div class="mini">' +
+        '<div class="mini-top">' + sanitizeHTML(fmt(pick(vc, 'vaccine_name', 'vaccineName'))) +
+          ' · เข็มที่ ' + sanitizeHTML(fmt(pick(vc, 'dose_no', 'doseNo'))) + '</div>' +
+        '<div class="mini-sub">สถานะ: ' + sanitizeHTML(fmt(pick(vc, 'status'))) +
+          ' · ฉีดเมื่อ ' + sanitizeHTML(fmt(pick(vc, 'vaccinated_date', 'vaccinatedDate'))) +
+          ' · ครบกำหนดถัดไป ' + sanitizeHTML(fmt(pick(vc, 'next_due_date', 'nextDueDate'))) + '</div>' +
+      '</div>';
+    }
+  } else {
+    html += '<div class="empty">— ไม่มีข้อมูลวัคซีน —</div>';
+  }
+
+  // นัดถัดไป
+  var appt = pick(data, 'next_appointment', 'nextAppointment');
+  html += '<div class="section-title">นัดครั้งถัดไป</div>';
+  if (appt) {
+    html += kvBlock([
+      { lbl: 'วันที่', val: fmt(pick(appt, 'date')) },
+      { lbl: 'ประเภท', val: fmt(pick(appt, 'type')) }
+    ]);
+  } else {
+    html += '<div class="empty">— ไม่มีนัดล่วงหน้า —</div>';
+  }
+
+  // disclaimer เดโม (โชว์ทุกครั้งที่แสดงข้อมูลสุขภาพ)
+  var disc = pick(data, 'disclaimer');
+  if (disc) {
+    html += '<div class="mini" style="margin-top:14px;background:var(--amber-050);border-color:#fde68a">' +
+            '<div class="mini-sub" style="color:#92400e">' + sanitizeHTML(disc) + '</div></div>';
+  }
+
+  card.innerHTML = html;
+}
+
+// สร้างบล็อกคีย์-ค่า (ทุก val ผ่าน sanitizeHTML)
+function kvBlock(rows) {
+  var s = '<div class="kv">';
+  for (var i = 0; i < rows.length; i++) {
+    s += '<div class="kv-row"><span class="lbl">' + sanitizeHTML(rows[i].lbl) +
+         '</span><span class="val">' + sanitizeHTML(rows[i].val) + '</span></div>';
+  }
+  s += '</div>';
+  return s;
+}
+
+/* ---------- FLOW เริ่มต้น ---------- */
+function start() {
+  showState('state-loading');
+
+  if (CONFIG.GAS_ENDPOINT.indexOf('XXXX') !== -1) {
+    document.getElementById('errMsg').textContent = 'ยังไม่ได้ตั้งค่า GAS_ENDPOINT ในไฟล์ (ดูส่วน CONFIG)';
+    showState('state-error');
+    return;
+  }
+
+  resolveUser()
+    .then(function (user) {
+      if (!user || !user.uid) { showState('state-needuid'); return; }
+      CURRENT_UID = user.uid;
+
+      // role probe: ยิง list ด้วย q ว่าง 1 ครั้ง → backend ตรวจ role ก่อนเสมอ
+      return callLookup({ mode: 'list', q: '' })
+        .then(function (data) {
+          if (data && pick(data, 'ok') === true) {
+            VIEWER = pick(data, 'viewer') || {};
+            document.getElementById('viewerName').textContent = pick(VIEWER, 'name') || user.name || '(เจ้าหน้าที่)';
+            document.getElementById('viewerRole').textContent = pick(VIEWER, 'role') || '—';
+            document.getElementById('resultList').innerHTML =
+              '<div class="empty">พิมพ์รหัสประชาชนหรือชื่อ แล้วกดค้นหา</div>';
+            showState('searchView');
+          } else if (data && pick(data, 'error') === 'unauthorized') {
+            document.getElementById('unauthMsg').textContent =
+              pick(data, 'message') || 'เฉพาะผู้บริหาร/เจ้าหน้าที่เท่านั้น';
+            showState('state-unauthorized');
+          } else {
+            throw new Error((data && pick(data, 'message')) || 'ตรวจสิทธิ์ไม่สำเร็จ');
+          }
+        });
+    })
+    .catch(function (e) {
+      console.error(e);
+      document.getElementById('errMsg').textContent =
+        'เชื่อมต่อไม่สำเร็จ (' + (e && e.message ? e.message : 'unknown') + ')';
+      showState('state-error');
+    });
+}
+
+document.getElementById('searchBtn').addEventListener('click', doSearch);
+document.getElementById('qInput').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { e.preventDefault(); doSearch(); }
+});
+document.getElementById('backBtn').addEventListener('click', function () { showState('searchView'); });
+document.getElementById('retryBtn').addEventListener('click', start);
+start();
+</script>
+</body>
+</html>
