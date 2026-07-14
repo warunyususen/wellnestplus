@@ -174,7 +174,7 @@ body {
       </div>
       <div>
         <h1>ลงทะเบียนผู้ใช้</h1>
-        <p>WellNest+ · เทศบาลนครพระนครศรีอยุธยา</p>
+        <p>WellNest+ · <span id="orgName">เทศบาลนครพระนครศรีอยุธยา</span></p>
       </div>
     </div>
     <div class="spacer"></div>
@@ -283,7 +283,7 @@ body {
       <!-- PDPA consent (บังคับ) -->
       <label class="consent" for="fConsent">
         <input type="checkbox" id="fConsent" />
-        <span><b>ยินยอม (PDPA):</b> ข้าพเจ้ายินยอมให้เทศบาลนครพระนครศรีอยุธยาเก็บและใช้ข้อมูลสุขภาพของข้าพเจ้าเพื่อการดูแลสุขภาพเชิงป้องกัน · ข้อมูลทั้งหมดในระบบนี้เป็นเดโม (mock)</span>
+        <span><b>ยินยอม (PDPA):</b> ข้าพเจ้ายินยอมให้<span id="orgNameConsent">เทศบาลนครพระนครศรีอยุธยา</span>เก็บและใช้ข้อมูลสุขภาพของข้าพเจ้าเพื่อการดูแลสุขภาพเชิงป้องกัน · ข้อมูลทั้งหมดในระบบนี้เป็นเดโม (mock)</span>
       </label>
 
       <div class="form-msg" id="formMsg"></div>
@@ -555,7 +555,48 @@ document.getElementById('fConsent').addEventListener('change', syncSubmitEnabled
 document.getElementById('submitBtn').addEventListener('click', onSubmit);
 document.getElementById('goFormBtn').addEventListener('click', goToForm);
 document.getElementById('goFormBtn2').addEventListener('click', goToForm);
+/* ---------- [P2.1.2] Config-driven: ดึงค่าต่อพื้นที่จาก backend (best-effort + fallback) ----------
+ * ถ้า config ล่ม/ช้า: DOM คงค่า hardcode เดิม (ไม่จอเปล่า) · additive ล้วน ไม่แตะ flow start()
+ */
+// ตรวจว่าเป็นสี hex 6 หลัก (#rrggbb)
+function isHexColor(v) {
+  return /^#[0-9a-fA-F]{6}$/.test(String(v == null ? '' : v).trim());
+}
+// ตั้งธีม header gradient (SA: แค่ brand var — คง functional color เดิม)
+function applyTheme(primary, primaryLight) {
+  var root = document.documentElement;
+  if (isHexColor(primary))      root.style.setProperty('--teal-700', String(primary).trim());
+  if (isHexColor(primaryLight)) root.style.setProperty('--teal-500', String(primaryLight).trim());
+}
+// ตั้งชื่อหน่วยงานทั้ง header และข้อความ consent
+function setOrgName_(name) {
+  var el = document.getElementById('orgName');
+  if (el) el.textContent = name;
+  var elc = document.getElementById('orgNameConsent');
+  if (elc) elc.textContent = name;
+}
+// ดึง action=config มาปรับ header + consent + ธีม (ไม่บล็อกการโหลดหน้า)
+function applyConfig() {
+  try {
+    var url = CONFIG.GAS_ENDPOINT + '?action=config';
+    fetch(url, { method: 'GET', redirect: 'follow' })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data || pick(data, 'ok') === false) return;   // config ล่ม -> คง fallback เดิม
+        var cfg = pick(data, 'config') || {};
+        var orgName = pick(cfg, 'org_name', 'orgName');
+        if (orgName) setOrgName_(orgName);   // textContent = ปลอดภัย (ไม่ต้อง sanitize)
+        applyTheme(pick(cfg, 'theme_primary', 'themePrimary'),
+                   pick(cfg, 'theme_primary_light', 'themePrimaryLight'));
+      })
+      .catch(function (e) { console.warn('config ไม่พร้อม (ใช้ค่า default):', e); });
+  } catch (e) {
+    console.warn('applyConfig error (ใช้ค่า default):', e);
+  }
+}
+
 document.getElementById('retryBtn').addEventListener('click', start);
+applyConfig();   // [P2.1.2] ปรับ header + consent + ธีม จาก config (best-effort · ไม่บล็อก start)
 start();
 </script>
 </body>
