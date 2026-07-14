@@ -169,7 +169,7 @@ body {
       </div>
       <div>
         <h1>WellNest+ Dashboard</h1>
-        <p>เทศบาลนครพระนครศรีอยุธยา · สุขภาพเชิงป้องกัน</p>
+        <p><span id="orgName">เทศบาลนครพระนครศรีอยุธยา</span> · สุขภาพเชิงป้องกัน</p>
       </div>
     </div>
     <div class="spacer"></div>
@@ -300,6 +300,45 @@ function pick(obj) {
     if (obj[arguments[i]] !== undefined) return obj[arguments[i]];
   }
   return undefined;
+}
+
+/* ---------- [P2.1.2] Config-driven: ดึงค่าต่อพื้นที่จาก backend (best-effort + fallback) ----------
+ * ถ้า config ล่ม/ช้า: DOM คงค่า hardcode เดิม (ไม่จอเปล่า) · additive ล้วน ไม่แตะ flow start()
+ */
+// ตรวจว่าเป็นสี hex 6 หลัก (#rrggbb)
+function isHexColor(v) {
+  return /^#[0-9a-fA-F]{6}$/.test(String(v == null ? '' : v).trim());
+}
+
+// ตั้งธีม header gradient (SA: แค่ brand var — คง functional color เดิม)
+//  - --teal-700 = สีหลัก · --teal-500 = สีอ่อน (ตั้งเฉพาะเมื่อมี theme_primary_light; ไม่มี = คงค่าเดิม)
+function applyTheme(primary, primaryLight) {
+  var root = document.documentElement;
+  if (isHexColor(primary))      root.style.setProperty('--teal-700', String(primary).trim());
+  if (isHexColor(primaryLight)) root.style.setProperty('--teal-500', String(primaryLight).trim());
+}
+
+// ดึง action=config มาปรับ header + ธีม (ไม่บล็อกการโหลดหน้า)
+function applyConfig() {
+  try {
+    var url = CONFIG.GAS_ENDPOINT + '?action=config';
+    fetch(url, { method: 'GET', redirect: 'follow' })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data || pick(data, 'ok') === false) return;   // config ล่ม -> คง fallback เดิม
+        var cfg = pick(data, 'config') || {};
+        var orgName = pick(cfg, 'org_name', 'orgName');
+        if (orgName) {
+          var el = document.getElementById('orgName');
+          if (el) el.textContent = orgName;   // textContent = ปลอดภัย (ไม่ต้อง sanitize)
+        }
+        applyTheme(pick(cfg, 'theme_primary', 'themePrimary'),
+                   pick(cfg, 'theme_primary_light', 'themePrimaryLight'));
+      })
+      .catch(function (e) { console.warn('config ไม่พร้อม (ใช้ค่า default):', e); });
+  } catch (e) {
+    console.warn('applyConfig error (ใช้ค่า default):', e);
+  }
 }
 
 // โหลด external script พร้อม timeout (คืน Promise; ถ้าพลาด reject)
@@ -574,6 +613,7 @@ function fetchAiSummary() {
 
 document.getElementById('aiBtn').addEventListener('click', fetchAiSummary);
 document.getElementById('retryBtn').addEventListener('click', start);
+applyConfig();   // [P2.1.2] ปรับ header + ธีม จาก config (best-effort · ไม่บล็อก start)
 start();
 </script>
 </body>
