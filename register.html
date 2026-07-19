@@ -575,6 +575,25 @@ function setOrgName_(name) {
   var elc = document.getElementById('orgNameConsent');
   if (elc) elc.textContent = name;
 }
+// [P2.1.3] เติม dropdown ชุมชนจาก config.zones · คง 10 hardcode เดิมเป็น fallback ถ้า zones ว่าง/config ล่ม
+function populateZones(zones) {
+  if (!Array.isArray(zones) || zones.length === 0) return;   // ไม่มีข้อมูล -> คง fallback เดิม (ไม่แตะ)
+  var sel = document.getElementById('fZone');
+  if (!sel) return;
+  // ลบ option เดิมทั้งหมด ยกเว้น placeholder (value="")
+  for (var i = sel.options.length - 1; i >= 0; i--) {
+    if (sel.options[i].value !== '') sel.remove(i);
+  }
+  // เติมจาก zones (ใช้ textContent = ปลอดภัย ไม่ต้อง sanitize)
+  for (var j = 0; j < zones.length; j++) {
+    var name = String(zones[j] == null ? '' : zones[j]).trim();
+    if (!name) continue;
+    var opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  }
+}
 // ดึง action=config มาปรับ header + consent + ธีม (ไม่บล็อกการโหลดหน้า)
 function applyConfig() {
   try {
@@ -588,6 +607,7 @@ function applyConfig() {
         if (orgName) setOrgName_(orgName);   // textContent = ปลอดภัย (ไม่ต้อง sanitize)
         applyTheme(pick(cfg, 'theme_primary', 'themePrimary'),
                    pick(cfg, 'theme_primary_light', 'themePrimaryLight'));
+        populateZones(pick(data, 'zones'));   // [P2.1.3] dropdown ชุมชน dynamic (fallback = 10 hardcode)
       })
       .catch(function (e) { console.warn('config ไม่พร้อม (ใช้ค่า default):', e); });
   } catch (e) {
